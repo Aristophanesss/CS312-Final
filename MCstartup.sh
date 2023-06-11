@@ -33,4 +33,4 @@ EOT
 
 # Enable the Minecraft service
 sudo systemctl enable minecraft.service
-sudo systemctl start minecraft
+sudo systemctl start minecraft.service
