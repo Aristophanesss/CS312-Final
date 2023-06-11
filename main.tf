@@ -53,6 +53,13 @@ resource "aws_instance" "minecraft_server" {
     Name = "MinecraftServer"
   }
 
+  connection {
+    type        = "ssh"
+    user        = "ec2-user"
+    private_key = file("minecraft.pem")
+    host        = self.public_ip
+  }
+
   provisioner "file" {
     content     = file("MCstartup.sh")
     destination = "/home/ec2-user/MCstartup.sh"

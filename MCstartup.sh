@@ -12,8 +12,10 @@ curl -O https://piston-data.mojang.com/v1/objects/15c777e2cfe0556eef19aab534b186
 # Start the Minecraft server for the first time
 java -Xmx1024M -Xms1024M -jar server.jar nogui
 
+sleep 10
+
 # Agree to the Minecraft EULA
-sed -i 's/eula=false/eula=true/g' eula.txt
+echo "eula=true" >eula.txt
 
 # Create a systemd service file for Minecraft server
 sudo tee /etc/systemd/system/minecraft.service > /dev/null <<EOT
@@ -30,6 +32,8 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOT
+
+sleep 10
 
 # Enable the Minecraft service
 sudo systemctl enable minecraft.service
