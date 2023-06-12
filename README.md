@@ -121,3 +121,10 @@
     nmap -sV -Pn -p T:25565 <instance_public_ip>
     ```
     Before that you may what to make sure you have nmap installed on your machine, details can be found at https://nmap.org.
+## **6. Source references**
+1. Course materials from CS 312 System Administration
+2. ChatGPT for generating the diagram
+3. My work for CS 312 Midterm Project
+4. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html
+5. https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
+6. https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
