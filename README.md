@@ -1,97 +1,123 @@
 #### Author: Chen Xue/ xueche
-#### Date: 05/20/2023
+#### Date: 06/11/2023
 #### Course: CS 312/ System Administration
 #### Instructor: Alexander Ulbrich
 ---
-# <center>Auto-start Minecraft server on AWS EC2</center>
-## **1. Set up AWS EC2 instance**
-- At the 'console home' page, search for EC2 services and nevigate to EC2 dashboard.
-- Click on 'Launch Instance' to start a new instance, name your instance 'My Minecraft Server'.
-- Choose 'Amazon Linux 2 AMI (HVM), SSD Volume Type' as the AMI, and 't2.medium' for instance type.
-- For key pair, create a new one named 'Minecraft', store it in your desired location.
-- At Network Settings section, click edit
-    - Use default VPC and select 'Enable' for 'Auto-assign Public IP'
-    - Select Create security group, put 'Minecraft' as the name and description
-    - At Inbound security groups rules, keep the exsiting rules, then add rules:
-        - Type: Custom TCP, Protocol: TCP, Port range: 25565 (default Minecraft server port), Source type: Anywhere
-- Now you can launch your instance, it may take a few minutes for the instance to initialize.
-## **2. Connect to the instance**
-- Go back to the EC2 dashboard, once the instance is running, click on the instance ID to view the instance details.
-- Copy the 'Public IPv4 DNS'
-- In your own machince, open a terminal and connect to the instance using the following command:
+# <center>Auto-Start Minecraft server on AWS EC2 via Terraform</center>
+## **1. Background**
+- This is my final project for CS 312 System Administration. 
+- This project use Terraform to create a Minecraft server on AWS EC2. 
+- The server will be started when the instance is launched. And it will automatically restart when the server is rebooted.
+- The server will be terminated when the instance is terminated.
+## **2. Prerequisites**
+ - To run this project, you need to have an AWS account available with your desired key pair.
+    - Instructions on how to create a key pair can be found at https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html
+    - Optional: you can name your key pair as "minecraft" to avoid changing the default value in the code.
+ - For your local machine, you will need:
+    - Terraform installed
+        - To check if you already have Terraform installed, run the following command in your terminal:
+            ```
+            terraform -v
+            ``` 
+            If you see a version number, you are good to go.
+        - Otherwise, following the instructions at https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli to install Terraform.
+    - AWS CLI installed
+        - To check if you already have AWS CLI installed, run the following command in your terminal:
+            ```
+            aws --version
+            ```
+            If you see a version number, you are good to go.
+        - Otherwise, following the instructions at https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html to install AWS CLI.
+    - AWS credentials configured
+        - Access your your AWS account and go to the IAM dashboard, get your AWS Access Key ID and AWS Secret Access Key.
+        - To config your AWS credentials, run the following command in your terminal:
+            ```
+            aws configure
+            ``` 
+            Then enter your AWS Access Key ID and AWS Secret Access Key.
+        - If you are using an education account, you will need to access your credential information at "AWS Details" on your AWS Academy Learner Lab.
+            - Once you are on the "AWS Details" page, click on "Show" to reveal the credentials.
+            - In your local machine, run 
+                ```
+                vim ~/.aws/credentials
+                ``` 
+                then copy the credentials from your "AWS Details" tab. 
+            - Save the file.
+- Once you have all the prerequisites, download or clone the code from this repository.
+## **3. Diagram of the pipeline**
+      +---------------------+                      +------------------+
+      |                     |                      |                  |
+      |    Terraform        |                      |     AWS EC2      |
+      |                     |                      |                  |
+      +---------------------+                      +------------------+
+                  |                                           |
+                  |                                           |
+                  |                                           |
+                  |         Create resources with             |
+                  |         Terraform (e.g.,                  |
+                  |         EC2 instance, security group)     |
+                  |                                           |
+                  +------------------------------------------>|
+                  |                                           |
+                  |                                           |
+                  |         Connect to EC2 instance           |
+                  |         via SSH                           |
+                  |                                           |
+                  +------------------------------------------>|
+                  |                                           |
+                  |                                           |
+                  |         Transfer MCstartup.sh script      |
+                  |         to EC2 instance                   |
+                  |                                           |
+                  +------------------------------------------>|
+                  |                                           |
+                  |                                           |
+                  |         Execute MCstartup.sh script       |
+                  |         on EC2 instance                   |
+                  |                                           |
+                  +------------------------------------------>|
+                  |                                           |
+                  |                                           |
+                  |         Minecraft server running          |
+                  |                                           |
+                  +------------------------------------------>|
+## **4. Run the program**
+ - Navigate to the folder where you downloaded the code
     ```
-    ssh -i <path to your key pair> ec2-user@<Public IPv4 DNS>
+    cd <path_to_the_folder>
     ```
-- Enter yes for 'Are you sure you want to continue connecting (yes/no/[fingerprint])?'
-- Now you should be able to connect to the instance you just created via the terminal.
-## **3. Setup the Minecraft server**
-- First you may want to update the default packages on your instance:
+ - Make sure you have your key pair file ready in the folder, and the name of the key pair is preferably "minecraft" (or you can change this default value in the code).
+ - Initialize Terraform in your directory by running:
     ```
-    sudo yum update
+    terraform init
     ```
-- Then install the Jave Development Kit, which you will need to run the Minecraft server:
+    You should see a whole procedure of Terraform initializing with a message "Terraform has been successfully initialized!"
+- Then if you want to format and validate the configuration, run
     ```
-    sudo yum install java-17-amazon-corretto
+    terraform fmt
     ```
-   *Note: You will need OpenJDK 16 or later to run v1.17+ Minecraft server.*
-- Next visit Minecraft's offical website at: https://www.minecraft.net/en-us/download
-    - Click on Java Edition Server, this will led you to a page to download the server file.
-    - Right click on 'minecraft_server..jar', copy the link address.
-    - Back to the terminal, use curl to download the server file:
-        ```
-        curl -O <copied link>
-        ```
-- Run the JAR file to start the server:
+    and
     ```
-    java -Xmx1024M -Xms1024M -jar server.jar nogui
+    terraform validate
     ```
-- For the final step of this section, you'll need to agree to the Minecraft EULA:
-    - Open the EULA file using vim:
-        ```
-        vim eula.txt
-        ```
-    - Type i to enter insert mod, change the line 'eula=false' to 'eula=true'
-    - Hit ESC, then type ':wq' to save and exit
-## **4. Configure auto-start for the Minecraft server**
-- Create a new service file:
+    You should see a message "Success! The configuration is valid." if everything is good.
+- Now you can deploy the infrastructure by running
     ```
-    sudo vim /etc/systemd/system/minecraft.service
+    terraform apply
     ```
-- Copy and paste the following content into the file:
-    ```
-    [Unit]
-    Description=Minecraft Server
-    After=network.target
-
-    [Service]
-    User=ec2-user
-    ExecStart=/usr/bin/java -Xmx1024M -Xms1024M -jar /home/ec2-user/server.jar nogui
-    WorkingDirectory=/home/ec2-user
-    Restart=always
-
-    [Install]
-    WantedBy=multi-user.target
-    ```
-- Save and exit
-- Now you can enable the service by running:
-    ```
-    sudo systemctl enable minecraft.service
-    ```
-## **5. Reboot and testing**
-- Reboot the instance on terminal (or you can do it on the EC2 dashboard):
-    ```
-    sudo reboot
-    ```
-- Wait for a few minutes, then redo step 2 to connect to the instance.
-- Check if the Minecraft server is active:
-    ```
-    sudo systemctl is-acive minecraft.service
-    ```
-- At this point your terminal should simply response with 'active', which means the server should be up and running
-- Next let's test if the server is working as we expect:
+    You will be asked to confirm the action, type "yes" and hit enter.
+- Wait for a few minutes, you should see a message "Apply complete! Resources: x added, 0 changed, 0 destroyed." 
+- The Public IP address of the instance will also be shown in the output with the format: *instance_public_ip = "xx.xx.xxx.xxx"*
+## **5. Connect to the server**
+ - Before connecting to the server, you may need to wait for a few minutes for the server to be fully started.
+ - Next let's test if the server is working as we expect:
     - Open Minecraft on your own machine, click on 'Multiplayer', then 'Add Server'
-    - Enter the 'Public IPv4 DNS' of your instance, then click 'Done'
+    - Enter the 'instance_public_ip' of your instance, then click 'Done'
     - It may or may not take a few minutes for the server to be successfully connected
     - Once the connection is made, click on the server you just added, then click 'Join Server'
     - If you see the Minecraft world, then congratulations! You have successfully set up your own Minecraft server!
-- To test if the minecraft server will auto-start after reboot, you can redo step 5 and see if you can still connect to the server.
+ - If you are not desired to download Minecraft, you can also test the server using nmap:
+    ```
+    nmap -sV -Pn -p T:25565 <instance_public_ip>
+    ```
+    Before that you may what to make sure you have nmap installed on your machine, details can be found at https://nmap.org.
